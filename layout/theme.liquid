@@ -373,81 +373,68 @@
       <script src="{{ 'cart-drawer.js' | asset_url }}" defer="defer"></script>
     {%- endif -%}
 
-    {% if customer %}
+    {% if customer and customer.b2b? %}
       <script>
-      (function() {
-        // Debug: Welche Daten sind verfügbar?
-        console.log('=== VAT-ID Auto-Fill Debug ===');
-        console.log('Customer vorhanden:', {{ customer | json }});
-        console.log('Ist B2B?:', {% if customer.b2b? %}true{% else %}false{% endif %});
-        
-        {% if customer.company %}
-          console.log('Company:', {{ customer.company | json }});
-        {% endif %}
-        
-        // VAT-ID sammeln
-        let vatId = null;
-        let source = 'none';
-        
-        {% if customer.company.tax_exemptions.size > 0 %}
-          vatId = "{{ customer.company.tax_exemptions.first }}";
-          source = 'tax_exemptions';
-        {% endif %}
-        
-        {% if customer.company.metafields.custom.tax_id %}
-          vatId = "{{ customer.company.metafields.custom.tax_id }}";
-          source = 'company.metafields.custom.tax_id';
-        {% endif %}
-        
-        {% if customer.metafields.custom.vat_id %}
-          vatId = "{{ customer.metafields.custom.vat_id }}";
-          source = 'customer.metafields.custom.vat_id';
-        {% endif %}
-        
-        console.log('VAT-ID gefunden:', vatId, 'aus:', source);
-        
-        // Nur setzen wenn VAT-ID vorhanden
-        if (vatId && vatId.trim() !== '') {
-          // Warte bis Cart ready ist
-          function setVatId() {
-            fetch('/cart/update.js', {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify({
-                attributes: {
-                  'vat-id': vatId.trim()
-                }
+        (function () {
+          console.log('=== VAT-ID Auto-Fill Debug ===');
+          console.log('Customer ID:', {{ customer.id | json }});
+          console.log('Customer Email:', {{ customer.email | json }});
+          console.log('Is B2B:', true);
+
+          let vatId = null;
+          let source = 'none';
+
+          {% if customer.current_company_location %}
+            console.log('Current company location ID:', {{ customer.current_company_location.id | json }});
+            console.log('Current company location name:', {{ customer.current_company_location.name | json }});
+
+            {% if customer.current_company_location.tax_registration_id %}
+              vatId = {{ customer.current_company_location.tax_registration_id | json }};
+              source = 'customer.current_company_location.tax_registration_id';
+            {% endif %}
+          {% else %}
+            console.warn('Keine current_company_location gefunden');
+          {% endif %}
+
+          console.log('VAT-ID gefunden:', vatId, 'aus:', source);
+
+          if (vatId && String(vatId).trim() !== '') {
+            function setVatId() {
+              fetch('/cart/update.js', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                  attributes: {
+                    'vat-id': String(vatId).trim()
+                  }
+                })
               })
-            })
-            .then(response => {
-              console.log('Response Status:', response.status);
-              return response.json();
-            })
-            .then(data => {
-              console.log('✅ VAT-ID erfolgreich gesetzt:', vatId);
-              console.log('Cart Attributes:', data.attributes);
-            })
-            .catch(error => {
-              console.error('❌ Fehler beim Setzen:', error);
-            });
-          }
-          
-          // Mehrere Trigger-Punkte
-          if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', setVatId);
+              .then(function (response) {
+                return response.json();
+              })
+              .then(function (data) {
+                console.log('✅ VAT-ID erfolgreich gesetzt:', vatId);
+                console.log('Cart Attributes:', data.attributes);
+              })
+              .catch(function (error) {
+                console.error('❌ Fehler beim Setzen:', error);
+              });
+            }
+
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', setVatId);
+            } else {
+              setVatId();
+            }
+
+            document.addEventListener('cart:updated', setVatId);
           } else {
-            setVatId();
+            console.warn('⚠️ Keine VAT-ID auf current_company_location gefunden');
           }
-          
-          // Auch bei Cart-Änderungen
-          document.addEventListener('cart:updated', setVatId);
-        } else {
-          console.warn('⚠️ Keine VAT-ID gefunden für B2B-Kunden');
-        }
-      })();
+        })();
       </script>
     {% endif %}
   </body>
