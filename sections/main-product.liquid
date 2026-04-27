@@ -134,7 +134,13 @@
                 -%}
                   {%- assign is_german_customer = true -%}
                 {%- endif -%}
-                {%- if settings.b2b_price_debug and customer -%}
+                {%- assign show_b2b_debug = false -%}
+                {%- if customer -%}
+                  {%- if section.settings.show_b2b_price_debug or settings.b2b_price_debug or request.design_mode -%}
+                    {%- assign show_b2b_debug = true -%}
+                  {%- endif -%}
+                {%- endif -%}
+                {%- if show_b2b_debug -%}
                   <div
                     class="caption"
                     style="margin-top:0.5rem;padding:0.75rem;border:1px dashed #c00;font-size:1.1rem;white-space:pre-wrap;"
@@ -2282,6 +2288,17 @@ default_address.country = {% if customer.default_address %}{{ customer.default_a
       "id": "enable_video_looping",
       "default": false,
       "label": "t:sections.main-product.settings.enable_video_looping.label"
+    },
+    {
+      "type": "header",
+      "content": "B2B / Entwickler"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_b2b_price_debug",
+      "default": false,
+      "label": "B2B-Preis-Debug anzeigen (roter Kasten)",
+      "info": "Zeigt unter dem Preis technische Werte. Nach dem Test wieder deaktivieren. Oder: Theme-Editor öffnet automatisch Vorschau mit Debug, wenn im Editor geladen."
     },
     {
       "type": "header",
