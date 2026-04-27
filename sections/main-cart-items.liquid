@@ -454,10 +454,9 @@
         {{ 'accessibility.loading' | t }}
       </p>
     </form>
-        {% if customer and customer.b2b? %}
+     {% if customer and customer.b2b? %}
       <script>
-      (function() {
-        // VAT-ID aus verschiedenen möglichen Quellen
+      document.addEventListener('DOMContentLoaded', function() {
         let vatId = null;
         
         {% if customer.company.tax_exemptions.size > 0 %}
@@ -468,7 +467,6 @@
           vatId = "{{ customer.metafields.custom.vat_id }}";
         {% endif %}
         
-        // Automatisch in Cart Attributes schreiben
         if (vatId && vatId.trim() !== '') {
           fetch('/cart/update.js', {
             method: 'POST',
@@ -483,14 +481,10 @@
             })
           })
           .then(response => response.json())
-          .then(data => {
-            console.log('VAT-ID automatisch gesetzt:', vatId);
-          })
-          .catch(error => {
-            console.error('Fehler beim Setzen der VAT-ID:', error);
-          });
+          .then(data => console.log('VAT-ID gesetzt:', vatId))
+          .catch(error => console.error('VAT-ID Fehler:', error));
         }
-      })();
+      });
       </script>
     {% endif %}
   </div>

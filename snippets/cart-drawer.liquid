@@ -577,5 +577,38 @@
         </div>
       </div>
     </div>
+    {% if customer and customer.b2b? %}
+      <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        let vatId = null;
+        
+        {% if customer.company.tax_exemptions.size > 0 %}
+          vatId = "{{ customer.company.tax_exemptions.first }}";
+        {% elsif customer.company.metafields.custom.tax_id %}
+          vatId = "{{ customer.company.metafields.custom.tax_id }}";
+        {% elsif customer.metafields.custom.vat_id %}
+          vatId = "{{ customer.metafields.custom.vat_id }}";
+        {% endif %}
+        
+        if (vatId && vatId.trim() !== '') {
+          fetch('/cart/update.js', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              attributes: {
+                'vat-id': vatId.trim()
+              }
+            })
+          })
+          .then(response => response.json())
+          .then(data => console.log('VAT-ID gesetzt:', vatId))
+          .catch(error => console.error('VAT-ID Fehler:', error));
+        }
+      });
+      </script>
+    {% endif %}
   </div>
 </cart-drawer>
