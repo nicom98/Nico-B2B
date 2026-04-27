@@ -384,16 +384,21 @@
           let vatId = null;
           let source = 'none';
 
-          {% if customer.current_company_location %}
-            console.log('Current company location ID:', {{ customer.current_company_location.id | json }});
-            console.log('Current company location name:', {{ customer.current_company_location.name | json }});
+          {% if customer.current_company %}
+            console.log('Current company ID:', {{ customer.current_company.id | json }});
+            console.log('Current company name:', {{ customer.current_company.name | json }});
+          {% endif %}
 
-            {% if customer.current_company_location.tax_registration_id %}
-              vatId = {{ customer.current_company_location.tax_registration_id | json }};
-              source = 'customer.current_company_location.tax_registration_id';
+          {% if customer.current_location %}
+            console.log('Current location ID:', {{ customer.current_location.id | json }});
+            console.log('Current location name:', {{ customer.current_location.name | json }});
+
+            {% if customer.current_location.tax_registration_id %}
+              vatId = {{ customer.current_location.tax_registration_id | json }};
+              source = 'customer.current_location.tax_registration_id';
             {% endif %}
           {% else %}
-            console.warn('Keine current_company_location gefunden');
+            console.warn('Keine current_location gefunden');
           {% endif %}
 
           console.log('VAT-ID gefunden:', vatId, 'aus:', source);
@@ -432,7 +437,7 @@
 
             document.addEventListener('cart:updated', setVatId);
           } else {
-            console.warn('⚠️ Keine VAT-ID auf current_company_location gefunden');
+            console.warn('⚠️ Keine VAT-ID auf current_location gefunden');
           }
         })();
       </script>
