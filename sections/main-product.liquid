@@ -84,6 +84,7 @@
           class="product__info-container{% if section.settings.enable_sticky_info %} product__column-sticky{% endif %}"
         >
           {%- assign product_form_id = 'product-form-' | append: section.id -%}
+          {%- render 'b2b-net-price-debug' -%}
 
           {%- for block in section.blocks -%}
             {%- case block.type -%}
@@ -133,37 +134,6 @@
                   or customer and customer.default_address and customer.default_address.country_code == 'DE'
                 -%}
                   {%- assign is_german_customer = true -%}
-                {%- endif -%}
-                {%- assign show_b2b_debug = false -%}
-                {%- if customer -%}
-                  {%- if section.settings.show_b2b_price_debug or settings.b2b_price_debug or request.design_mode -%}
-                    {%- assign show_b2b_debug = true -%}
-                  {%- endif -%}
-                {%- endif -%}
-                {%- if show_b2b_debug -%}
-                  <div
-                    class="caption"
-                    style="margin-top:0.5rem;padding:0.75rem;border:1px dashed #c00;font-size:1.1rem;white-space:pre-wrap;"
-                    data-b2b-net-debug
-                  >
-                    {%- assign dbg_co = '—' -%}
-                    {%- if customer.current_company -%}
-                      {%- assign dbg_co = customer.current_company.name | default: '(Company ohne Name)' -%}
-                    {%- endif -%}
-B2B-Debug (temp., Theme-Einstellung)
-customer.b2b? = {{ customer.b2b? }}
-customer.current_company = {% if customer.current_company %}ja ({{ dbg_co | escape }}){% else %}nein{% endif %}
-localization.country = {{ localization.country.iso_code | default: '—' }}
-request.locale = {{ request.locale.iso_code | default: '—' }}
-default_address.country = {% if customer.default_address %}{{ customer.default_address.country_code | default: '—' }}{% else %}(keine Standardadresse){% endif %}
-→ is_b2b_customer = {{ is_b2b_customer }}
-→ is_german_customer = {{ is_german_customer }}
-{%- if is_b2b_customer and is_german_customer -%}
-→ Netto anzeigen = true
-{%- else -%}
-→ Netto anzeigen = false
-{%- endif -%}
-                  </div>
                 {%- endif -%}
                 {%- if is_b2b_customer and is_german_customer -%}
                   <div class="product__tax caption rte">
