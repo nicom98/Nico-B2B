@@ -376,32 +376,10 @@
     {% if customer and customer.b2b? %}
       <script>
         (function () {
-          console.log('=== VAT-ID Auto-Fill Debug ===');
-          console.log('Customer ID:', {{ customer.id | json }});
-          console.log('Customer Email:', {{ customer.email | json }});
-          console.log('Is B2B:', true);
-
-          let vatId = null;
-          let source = 'none';
-
-          {% if customer.current_company %}
-            console.log('Current company ID:', {{ customer.current_company.id | json }});
-            console.log('Current company name:', {{ customer.current_company.name | json }});
+          var vatId = null;
+          {% if customer.current_location and customer.current_location.tax_registration_id %}
+            vatId = {{ customer.current_location.tax_registration_id | json }};
           {% endif %}
-
-          {% if customer.current_location %}
-            console.log('Current location ID:', {{ customer.current_location.id | json }});
-            console.log('Current location name:', {{ customer.current_location.name | json }});
-
-            {% if customer.current_location.tax_registration_id %}
-              vatId = {{ customer.current_location.tax_registration_id | json }};
-              source = 'customer.current_location.tax_registration_id';
-            {% endif %}
-          {% else %}
-            console.warn('Keine current_location gefunden');
-          {% endif %}
-
-          console.log('VAT-ID gefunden:', vatId, 'aus:', source);
 
           if (vatId && String(vatId).trim() !== '') {
             function setVatId() {
@@ -409,35 +387,21 @@
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Accept': 'application/json'
+                  Accept: 'application/json',
                 },
                 body: JSON.stringify({
                   attributes: {
-                    'vat-id': String(vatId).trim()
-                  }
-                })
-              })
-              .then(function (response) {
-                return response.json();
-              })
-              .then(function (data) {
-                console.log('✅ VAT-ID erfolgreich gesetzt:', vatId);
-                console.log('Cart Attributes:', data.attributes);
-              })
-              .catch(function (error) {
-                console.error('❌ Fehler beim Setzen:', error);
-              });
+                    'vat-id': String(vatId).trim(),
+                  },
+                }),
+              }).catch(function () {});
             }
-
             if (document.readyState === 'loading') {
               document.addEventListener('DOMContentLoaded', setVatId);
             } else {
               setVatId();
             }
-
             document.addEventListener('cart:updated', setVatId);
-          } else {
-            console.warn('⚠️ Keine VAT-ID auf current_location gefunden');
           }
         })();
       </script>

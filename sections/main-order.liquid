@@ -99,7 +99,7 @@
                             {{- 'icon-discount.svg' | inline_asset_content -}}
                           </span>
                           {{- discount_allocation.discount_application.title | escape }} (-
-                          {{- discount_allocation.amount | money -}}
+                          {%- render 'money-b2b', cents: discount_allocation.amount, line_item: line_item -%}
                           )
                         </li>
                       {%- endfor -%}
@@ -145,20 +145,20 @@
                         <span class="visually-hidden">{{ 'products.product.price.regular_price' | t }}</span>
                       </dt>
                       <dd class="regular-price">
-                        <s>{{ line_item.original_price | money }}</s>
+                        <s>{%- render 'money-b2b', cents: line_item.original_price, line_item: line_item -%}</s>
                       </dd>
                       <dt>
                         <span class="visually-hidden">{{ 'products.product.price.sale_price' | t }}</span>
                       </dt>
                       <dd>
-                        <span>{{ line_item.final_price | money }}</span>
+                        <span>{%- render 'money-b2b', cents: line_item.final_price, line_item: line_item -%}</span>
                       </dd>
                     {%- else -%}
                       <dt>
                         <span class="visually-hidden">{{ 'products.product.price.regular_price' | t }}</span>
                       </dt>
                       <dd>
-                        {{ line_item.original_price | money }}
+                        {%- render 'money-b2b', cents: line_item.original_price, line_item: line_item -%}
                       </dd>
                     {%- endif -%}
                     {%- if line_item.unit_price_measurement -%}
@@ -166,12 +166,18 @@
                         <span class="visually-hidden">{{ 'products.product.price.unit_price' | t }}</span>
                       </dt>
                       <dd class="unit-price">
-                        {% render 'unit-price', price: line_item.unit_price, measurement: line_item.unit_price_measurement, hide_accessibility_label: true %}
+                        {%
+                          render 'unit-price',
+                            price: line_item.unit_price,
+                            measurement: line_item.unit_price_measurement,
+                            line_item: line_item,
+                            hide_accessibility_label: true
+                        %}
                       </dd>
                     {%- endif -%}
                   </dl>
                 {%- else -%}
-                  <span>{{ line_item.final_price | money }}</span>
+                  <span>{%- render 'money-b2b', cents: line_item.final_price, line_item: line_item -%}</span>
                 {%- endif -%}
               </td>
               <td
@@ -192,17 +198,17 @@
                       <span class="visually-hidden">{{ 'products.product.price.regular_price' | t }}</span>
                     </dt>
                     <dd class="regular-price">
-                      <s>{{ line_item.original_line_price | money }}</s>
+                      <s>{%- render 'money-b2b', cents: line_item.original_line_price, line_item: line_item -%}</s>
                     </dd>
                     <dt>
                       <span class="visually-hidden">{{ 'products.product.price.sale_price' | t }}</span>
                     </dt>
                     <dd>
-                      <span>{{ line_item.final_line_price | money }}</span>
+                      <span>{%- render 'money-b2b', cents: line_item.final_line_price, line_item: line_item -%}</span>
                     </dd>
                   </dl>
                 {%- else -%}
-                  {{ line_item.original_line_price | money }}
+                  {%- render 'money-b2b', cents: line_item.original_line_price, line_item: line_item -%}
                 {%- endif -%}
               </td>
             </tr>
@@ -214,7 +220,7 @@
               {{ 'customer.order.subtotal' | t }}
             </td>
             <td headers="RowSubtotal" role="cell" data-label="{{ 'customer.order.subtotal' | t }}">
-              {{ order.line_items_subtotal_price | money }}
+              {%- render 'money-b2b', cents: order.line_items_subtotal_price -%}
             </td>
           </tr>
           {%- if order.cart_level_discount_applications != blank -%}
@@ -231,7 +237,7 @@
                 </td>
                 <td headers="RowDiscount" role="cell" data-label="{{ 'customer.order.discount' | t }}">
                   <div>
-                    <span>-{{ discount_application.total_allocated_amount | money }}</span>
+                    <span>-{%- render 'money-b2b', cents: discount_application.total_allocated_amount -%}</span>
                     <span class="cart-discount">
                       <span class="svg-wrapper">
                         {{- 'icon-discount.svg' | inline_asset_content -}}
@@ -253,7 +259,7 @@
                 role="cell"
                 data-label="{{ 'customer.order.shipping' | t }} ({{ shipping_method.title | escape }})"
               >
-                {{ shipping_method.price | money }}
+                {%- render 'money-b2b', cents: shipping_method.price -%}
               </td>
             </tr>
           {%- endfor -%}
@@ -276,7 +282,7 @@
             <tr role="row">
               <td id="RowDuties" role="rowheader" scope="row" colspan="4">{{ 'customer.order.total_duties' | t }}</td>
               <td headers="RowDuties" role="cell" data-label="{{ 'customer.order.total_duties' | t }}">
-                {{ order.total_duties | money }}
+                {%- render 'money-b2b', cents: order.total_duties -%}
               </td>
             </tr>
           {%- endif -%}
@@ -291,7 +297,7 @@
                 colspan="2"
                 data-label="{{ 'customer.order.total_refunded' | t }}"
               >
-                -{{ order.total_refunded_amount | money_with_currency }}
+                -{%- render 'money-b2b', cents: order.total_refunded_amount, with_currency: true -%}
               </td>
             </tr>
           {%- endif -%}

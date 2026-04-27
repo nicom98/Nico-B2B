@@ -85,7 +85,6 @@
         "image_zoom": "lightbox",
         "hide_variants": true,
         "enable_video_looping": false,
-        "show_b2b_price_debug": true,
         "padding_top": 36,
         "padding_bottom": 12
       }

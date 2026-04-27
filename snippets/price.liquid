@@ -12,27 +12,9 @@
   Usage:
   {% render 'price', product: product %}
 
-  B2B-Netto: customer.b2b? oder current_company; DE: Markt DE oder default_address DE.
+  Netto für DE-B2B: snippets/money-b2b.liquid
 {% endcomment %}
 {%- liquid
-  assign is_b2b_customer = false
-  assign is_german_customer = false
-  assign customer_tags_downcase = customer.tags | join: ',' | downcase
-
-  if customer
-    if customer.b2b? or customer.current_company
-      assign is_b2b_customer = true
-    elsif customer_tags_downcase contains 'b2b' or customer_tags_downcase contains 'unternehmenskonto'
-      assign is_b2b_customer = true
-    endif
-  endif
-
-  if localization.country.iso_code == 'DE'
-    assign is_german_customer = true
-  elsif customer and customer.default_address and customer.default_address.country_code == 'DE'
-    assign is_german_customer = true
-  endif
-
   if use_variant
     assign target = product.selected_or_first_available_variant
   elsif placeholder
@@ -40,69 +22,73 @@
   else
     assign target = product
   endif
-
-  assign compare_at_price = target.compare_at_price
-  assign price = target.price | default: 1999
-  assign price_min = product.price_min
-  assign price_max = product.price_max
-  assign available = target.available | default: false
-  assign money_price = price | money
-  assign money_price_min = price_min | money
-  assign money_price_max = price_max | money
-
-  if is_b2b_customer and is_german_customer
-    assign price = price | times: 100.0 | divided_by: 119.0 | round
-    assign price_min = price_min | times: 100.0 | divided_by: 119.0 | round
-    assign price_max = price_max | times: 100.0 | divided_by: 119.0 | round
-    assign compare_at_price = compare_at_price | times: 100.0 | divided_by: 119.0 | round
-    assign money_price = price | money
-    assign money_price_min = price_min | money
-    assign money_price_max = price_max | money
-  endif
-
-  if settings.currency_code_enabled
-    assign money_price = price | money_with_currency
-    assign money_price_min = price_min | money_with_currency
-    assign money_price_max = price_max | money_with_currency
-  endif
-
-  if target == product and product.price_varies
-    assign money_price = 'products.product.price.from_price_html' | t: price: money_price
-  endif
 -%}
 
 {%- unless target == null and placeholder == null -%}
+  {%- liquid
+    if target
+      assign gross_price = target.price | default: 1999
+      assign gross_compare = target.compare_at_price
+    else
+      assign gross_price = 1999
+      assign gross_compare = nil
+    endif
+    assign gross_price_min = product.price_min | default: gross_price
+    assign gross_price_max = product.price_max | default: gross_price
+    if target
+      assign available = target.available | default: false
+    else
+      assign available = false
+    endif
+
+    assign wc = false
+    if settings.currency_code_enabled
+      assign wc = true
+    endif
+
+    capture money_price
+      render 'money-b2b', cents: gross_price, with_currency: wc, product: product
+    endcapture
+    capture money_price_min
+      render 'money-b2b', cents: gross_price_min, with_currency: wc, product: product
+    endcapture
+    capture money_price_max
+      render 'money-b2b', cents: gross_price_max, with_currency: wc, product: product
+    endcapture
+  -%}
+
+  {%- if target == product and product.price_varies -%}
+    {%- assign money_price = 'products.product.price.from_price_html' | t: price: money_price -%}
+  {%- endif -%}
+
+  {%- capture money_compare -%}
+{%- if gross_compare -%}
+{%- render 'money-b2b', cents: gross_compare, with_currency: wc, product: product -%}
+{%- endif -%}
+  {%- endcapture -%}
+  {%- comment -%} Verkaufs-Badge: Brutto, Anzeige: money-b2b (Netto bei DE-B2B) {%- endcomment -%}
   <div
     class="
       price
       {%- if price_class %} {{ price_class }}{% endif -%}
       {%- if available == false %} price--sold-out{% endif -%}
-      {%- if compare_at_price > price and product.quantity_price_breaks_configured? != true %} price--on-sale{% endif -%}
-      {%- if compare_at_price > price and product.quantity_price_breaks_configured? %} volume-pricing--sale-badge{% endif -%}
+      {%- if gross_compare and gross_compare > gross_price and product.quantity_price_breaks_configured? != true %} price--on-sale{% endif -%}
+      {%- if gross_compare and gross_compare > gross_price and product.quantity_price_breaks_configured? %} volume-pricing--sale-badge{% endif -%}
       {%- if product.price_varies == false and product.compare_at_price_varies %} price--no-compare{% endif -%}
       {%- if show_badges %} price--show-badge{% endif -%}
     "
   >
     <div class="price__container">
-      {%- comment -%}
-        Explanation of description list:
-          - div.price__regular: Displayed when there are no variants on sale
-          - div.price__sale: Displayed when a variant is a sale
-      {%- endcomment -%}
       <div class="price__regular">
         {%- if product.quantity_price_breaks_configured? -%}
-          {%- if show_compare_at_price and compare_at_price -%}
+          {%- if show_compare_at_price and gross_compare -%}
             {%- unless product.price_varies == false and product.compare_at_price_varies %}
               <span class="visually-hidden visually-hidden--inline">
                 {{- 'products.product.price.regular_price' | t -}}
               </span>
               <span>
                 <s class="price-item price-item--regular variant-item__old-price">
-                  {% if settings.currency_code_enabled %}
-                    {{ compare_at_price | money_with_currency }}
-                  {% else %}
-                    {{ compare_at_price | money }}
-                  {% endif %}
+                  {{ money_compare | strip }}
                 </s>
               </span>
             {%- endunless -%}
@@ -117,7 +103,7 @@
         {%- else -%}
           <span class="visually-hidden visually-hidden--inline">{{ 'products.product.price.regular_price' | t }}</span>
           <span class="price-item price-item--regular">
-            {{ money_price }}
+            {{ money_price | strip }}
           </span>
         {%- endif -%}
       </div>
@@ -126,21 +112,22 @@
           <span class="visually-hidden visually-hidden--inline">{{ 'products.product.price.regular_price' | t }}</span>
           <span>
             <s class="price-item price-item--regular">
-              {% if settings.currency_code_enabled %}
-                {{ compare_at_price | money_with_currency }}
-              {% else %}
-                {{ compare_at_price | money }}
-              {% endif %}
+              {{ money_compare | strip }}
             </s>
           </span>
         {%- endunless -%}
         <span class="visually-hidden visually-hidden--inline">{{ 'products.product.price.sale_price' | t }}</span>
         <span class="price-item price-item--sale price-item--last">
-          {{ money_price }}
+          {{ money_price | strip }}
         </span>
       </div>
       {%- if product.selected_or_first_available_variant.unit_price_measurement -%}
-        {% render 'unit-price', price: product.selected_or_first_available_variant.unit_price, measurement: product.selected_or_first_available_variant.unit_price_measurement %}
+        {%
+          render 'unit-price',
+            price: product.selected_or_first_available_variant.unit_price,
+            measurement: product.selected_or_first_available_variant.unit_price_measurement,
+            product: product
+        %}
       {%- endif -%}
     </div>
     {%- if show_badges -%}
@@ -153,4 +140,4 @@
       </span>
     {%- endif -%}
   </div>
-{% endunless %}
+{%- endunless -%}

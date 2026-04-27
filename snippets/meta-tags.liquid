@@ -27,7 +27,10 @@
 {%- endif -%}
 
 {%- if request.page_type == 'product' -%}
-  <meta property="og:price:amount" content="{{ product.price | money_without_currency | strip_html }}">
+  {%- capture og_price_amount -%}
+    {%- render 'money-b2b', cents: product.price, format: 'og', product: product -%}
+  {%- endcapture -%}
+  <meta property="og:price:amount" content="{{ og_price_amount | strip }}">
   <meta property="og:price:currency" content="{{ cart.currency.iso_code }}">
 {%- endif -%}
 

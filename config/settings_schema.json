@@ -1451,17 +1451,5 @@
         "default": "scheme-1"
       }
     ]
-  },
-  {
-    "name": "B2B / Entwickler",
-    "settings": [
-      {
-        "type": "checkbox",
-        "id": "b2b_price_debug",
-        "label": "B2B-Preis: Debug auf Produktseite",
-        "info": "Zeigt unter dem Preis technische Werte (Company, Land, Markt). Nach dem Test wieder deaktivieren.",
-        "default": false
-      }
-    ]
   }
 ]

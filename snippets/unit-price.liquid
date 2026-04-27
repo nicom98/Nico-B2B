@@ -1,21 +1,21 @@
 {%- doc -%}
   Renders the unit price, including its measurement.
 
-  @param {object} price - The unit price (money or string).
+  @param {number} price - Stückpreis in Cent (gross)
   @param {object} measurement - The unit_price_measurement object.
+  @param {object} [product] - For 7% MwSt.-Kollektion (net divisor 1,07 statt 1,19)
+  @param {object} [line_item] - Alternativ: Kaufzeile mit zugehörigem Produkt
   @param {boolean} [hide_accessibility_label] - Whether to hide the accessibility label (default: false).
-
-  @example
-  {% render 'unit-price', price: variant.unit_price, measurement: variant.unit_price_measurement %}
-
-  @example
-  {% render 'unit-price', price: line_item.unit_price | money_with_currency, measurement: line_item.unit_price_measurement }
 {%- enddoc -%}
+{%- capture up_net_cents -%}
+  {% render 'money-b2b', cents: price, format: 'cents_only', product: product, line_item: line_item %}
+{%- endcapture -%}
+{%- assign up_net_cents = up_net_cents | strip | plus: 0 -%}
 <small class="unit-price caption">
   {%- unless hide_accessibility_label -%}
     <span class="visually-hidden">{{ 'products.product.price.unit_price' | t }}</span>
   {%- endunless -%}
   <span class="price-item price-item--last">
-    {{ price | unit_price_with_measurement: measurement }}
+    {{ up_net_cents | unit_price_with_measurement: measurement }}
   </span>
 </small>

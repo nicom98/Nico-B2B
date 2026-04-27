@@ -1,0 +1,65 @@
+{% comment %}
+  Formatiert einen Betrag in Cent: bei deutschem B2B (Company / b2b? / Tags) Netto = Brutto ÷ 1,19
+  bzw. ÷ 1,07, wenn das Produkt in der Kollektion „7% MWSt“ o. ä. hängt.
+
+  @param {number} cents - Bruttopreis in Shop-Währung (Cent)
+  @param {object} [product] - Produkt, dessen Kollektionen geprüft werden (7% vs 19%)
+  @param {object} [line_item] - Alternativ: Kaufzeile, es wird line_item.product verwendet
+  @param {boolean} [with_currency] - money_with_currency statt money
+  @param {string} [format] - leer/omit = money; 'og' = Zahl für og:price; 'cents_only' = nur Cent-Zahl (z. B. Stückpreis)
+{% endcomment %}
+{%- liquid
+  assign amount = cents | default: 0
+  assign is_b2b = false
+  assign is_de = false
+  if customer
+    if customer.b2b? or customer.current_company
+      assign is_b2b = true
+    else
+      assign tag_str = customer.tags | join: ',' | downcase
+      if tag_str contains 'b2b' or tag_str contains 'unternehmenskonto'
+        assign is_b2b = true
+      endif
+    endif
+  endif
+  if localization.country.iso_code == 'DE'
+    assign is_de = true
+  elsif customer and customer.default_address and customer.default_address.country_code == 'DE'
+    assign is_de = true
+  endif
+
+  assign b2b_vat_baseline = 119.0
+  assign vat_source_product = nil
+  if product != blank
+    assign vat_source_product = product
+  elsif line_item != blank and line_item.product
+    assign vat_source_product = line_item.product
+  endif
+  if vat_source_product
+    for coll in vat_source_product.collections
+      assign ch = coll.handle | downcase
+      if ch == '7-mwst' or ch contains '7-mwst' or ch contains '7prozent' or ch contains '7-prozent' or ch contains '7-proz'
+        assign b2b_vat_baseline = 107.0
+        break
+      endif
+      assign ct = coll.title | downcase
+      if ct contains '7%' and ct contains 'mwst'
+        assign b2b_vat_baseline = 107.0
+        break
+      endif
+    endfor
+  endif
+
+  if is_b2b and is_de
+    assign amount = amount | times: 100.0 | divided_by: b2b_vat_baseline | round
+  endif
+-%}
+{%- if format == 'cents_only' -%}
+  {{- amount -}}
+{%- elsif format == 'og' -%}
+  {{- amount | money_without_currency | strip_html -}}
+{%- elsif with_currency -%}
+  {{- amount | money_with_currency -}}
+{%- else -%}
+  {{- amount | money -}}
+{%- endif -%}
