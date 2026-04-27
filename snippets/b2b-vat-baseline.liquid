@@ -3,11 +3,21 @@
   107 = 7 % MwSt., 119 = 19 % Mwst.
   Muss inhaltlich mit money-b2b / Warenkorb-Summe übereinstimmen.
 
+  Im Warenkorb liefert `line_item.product` oft keine/kaum `collections` — über
+  `all_products[handle]` das Katalogprodukt verwenden, damit die 7%-Kollektion erkannt wird.
+
   @param {object} [product] - Wenn leer, wird 119 ausgegeben.
 {%- endcomment -%}
+{%- assign p = product -%}
+{%- if p != blank and p.handle != blank -%}
+  {%- assign p_catalog = all_products[p.handle] -%}
+  {%- if p_catalog != blank -%}
+    {%- assign p = p_catalog -%}
+  {%- endif -%}
+{%- endif -%}
 {%- assign b2b_vat_baseline = 119 -%}
-{%- if product != blank -%}
-  {%- for coll in product.collections -%}
+{%- if p != blank -%}
+  {%- for coll in p.collections -%}
     {%- assign ch = coll.handle | downcase -%}
     {%- if ch == '7-mwst' or ch contains '7-mwst' or ch contains '7prozent' or ch contains '7-prozent' or ch contains '7-proz' -%}
       {%- assign b2b_vat_baseline = 107 -%}
