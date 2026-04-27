@@ -1,1 +1,116 @@
-{"sections":{"main":{"type":"main-product","blocks":{"vendor":{"type":"text","settings":{"text":"{{ product.vendor }}","text_style":"uppercase"}},"title":{"type":"title","settings":{}},"price":{"type":"price","settings":{}},"custom_liquid_7WKpRx":{"type":"custom_liquid","settings":{"custom_liquid":"{% liquid\n  assign show_staffel = true\n\n  if product == nil\n    assign show_staffel = false\n  endif\n\n  assign staffel_metafield = product.metafields.custom.staffelpreise\n\n  if staffel_metafield == blank\n    assign show_staffel = false\n  else\n    assign tiers = staffel_metafield.value | sort: 'mindestmenge'\n    if tiers.size == 0\n      assign show_staffel = false\n    endif\n  endif\n\n  assign base_price = product.selected_or_first_available_variant.price\n  assign container_id = 'volume-pricing-' | append: product.id\n%}\n\n{% if show_staffel %}\n  <div id=\"{{ container_id }}\" class=\"volume-pricing\">\n    <strong>Mengenrabatte<\/strong>\n\n    <table class=\"volume-pricing__table\">\n      <thead>\n        <tr>\n          <th class=\"vp__col-select\"><\/th>\n          <th class=\"vp__col-qty\">Menge<\/th>\n          <th class=\"vp__col-discount\">Rabatt \/ Stk.<\/th>\n        <\/tr>\n      <\/thead>\n      <tbody>\n        {% for tier in tiers %}\n          {% assign qty = tier.mindestmenge.value %}\n          {% assign discount_value = tier.rabatt_in_euro.value %}\n          <tr>\n            <td class=\"vp__col-select\">\n              <button\n                type=\"button\"\n                class=\"vp__select\"\n                data-qty=\"{{ qty }}\"\n                aria-label=\"Menge auf {{ qty }} Stück setzen\"\n              ><\/button>\n            <\/td>\n            <td class=\"vp__col-qty\">ab {{ qty }} Stück<\/td>\n            <td class=\"vp__col-discount\">-{{ discount_value | money }} pro Stück<\/td>\n          <\/tr>\n        {% endfor %}\n      <\/tbody>\n    <\/table>\n\n    <p class=\"volume-pricing__hint\" data-volume-message><\/p>\n  <\/div>\n\n  <style>\n    .volume-pricing {\n      border: 1px solid #e5e5e5;\n      padding: 1rem;\n      margin-top: 1rem;\n      border-radius: 0.5rem;\n      font-size: 0.9rem;\n    }\n    .volume-pricing__table {\n      width: 100%;\n      margin-top: 0.5rem;\n      border-collapse: collapse;\n    }\n    .volume-pricing__table th,\n    .volume-pricing__table td {\n      padding: 0.25rem 0;\n      text-align: left; \/* alles links *\/\n    }\n    .vp__col-select {\n      width: 2rem;\n      text-align: left;\n    }\n    .vp__select {\n      position: relative;\n      width: 1.4rem;\n      height: 1.4rem;\n      border-radius: 999px;\n      border: 1px solid #333;\n      background: #fff;\n      cursor: pointer;\n      padding: 0;\n      display: inline-block;\n      vertical-align: middle;\n    }\n    .vp__select::after {\n      content: \"\";\n      position: absolute;\n      inset: 3px;\n      border-radius: 999px;\n      background: #333;\n      opacity: 0; \/* leerer Kreis *\/\n      transition: opacity 0.15s ease-out;\n    }\n    .vp__select--active::after {\n      opacity: 1; \/* nur aktiver Button mit Punkt *\/\n    }\n    .vp__select:focus-visible {\n      outline: 2px solid #000;\n      outline-offset: 2px;\n    }\n    .volume-pricing__hint {\n      margin-top: 1rem;\n      font-size: 0.8rem;\n      opacity: 0.85;\n    }\n  <\/style>\n\n<script>\n  document.addEventListener('DOMContentLoaded', function() {\n    var container = document.getElementById({{ container_id | json }});\n    if (!container) return;\n\n    var messageEl = container.querySelector('[data-volume-message]');\n    var qtyInput = document.querySelector('input[name=\"quantity\"]');\n    if (!qtyInput) return;\n\n    var priceEl =\n      document.querySelector('[data-product-price]') ||\n      document.querySelector('.price-item--regular') ||\n      document.querySelector('.product__price') ||\n      document.querySelector('.price');\n\n    var originalPriceHTML = priceEl ? priceEl.innerHTML : null;\n\n    var baseUnitPrice = {{ base_price | json }};\n\n    var tiers = [\n      {% for tier in tiers %}\n        {\n          qty: {{ tier.mindestmenge.value | json }},\n          discountCents: {{ tier.rabatt_in_euro.value | json }},\n          discountLabel: {{ tier.rabatt_in_euro.value | money | json }}\n        }{% unless forloop.last %},{% endunless %}\n      {% endfor %}\n    ];\n\n    var selectButtons = container.querySelectorAll('.vp__select');\n\n    function formatMoney(cents) {\n      var value = cents \/ 100;\n      return value.toLocaleString('de-DE', {\n        style: 'currency',\n        currency: '{{ shop.currency }}'\n      });\n    }\n\n    function getBestTier(qty) {\n      var best = null;\n      for (var i = 0; i < tiers.length; i++) {\n        if (qty >= tiers[i].qty) {\n          best = tiers[i];\n        } else {\n          break;\n        }\n      }\n      return best;\n    }\n\n    function updateUI() {\n      var qty = parseInt(qtyInput.value, 10) || 1;\n\n      var bestTier = getBestTier(qty);\n\n      if (messageEl && tiers.length) {\n        var firstTier = tiers[0];\n\n        if (qty < firstTier.qty) {\n          var missingFirst = firstTier.qty - qty;\n          messageEl.textContent =\n            'Noch ' + missingFirst + ' Stück bis zum ersten Mengenrabatt: dann ' +\n            firstTier.discountLabel + ' Rabatt pro Stück.';\n        } else {\n          var nextTier = null;\n          for (var i = 0; i < tiers.length; i++) {\n            if (qty < tiers[i].qty) {\n              nextTier = tiers[i];\n              break;\n            }\n          }\n\n          if (nextTier) {\n            var missing = nextTier.qty - qty;\n            messageEl.textContent =\n              'Noch ' + missing + ' Stück bis ' + nextTier.qty +\n              '+: dann ' + nextTier.discountLabel + ' Rabatt pro Stück.';\n          } else {\n            var maxTier = tiers[tiers.length - 1];\n            messageEl.textContent =\n              'Du erhältst bereits den maximalen Mengenrabatt von ' +\n              maxTier.discountLabel + ' pro Stück.';\n          }\n        }\n      }\n\n      if (priceEl && originalPriceHTML !== null) {\n        if (!bestTier) {\n          priceEl.innerHTML = originalPriceHTML;\n        } else {\n          var discountedUnitPrice = baseUnitPrice - bestTier.discountCents;\n          if (discountedUnitPrice > 0) {\n            var baseFormatted = formatMoney(baseUnitPrice);\n            var discountedFormatted = formatMoney(discountedUnitPrice);\n            priceEl.innerHTML =\n              '<s>' + baseFormatted + '<\/s> ' + discountedFormatted;\n          } else {\n            priceEl.innerHTML = originalPriceHTML;\n          }\n        }\n      }\n\n      var activeQty = bestTier ? bestTier.qty : null;\n      selectButtons.forEach(function(btn) {\n        var btnQty = parseInt(btn.getAttribute('data-qty'), 10);\n        if (activeQty && btnQty === activeQty) {\n          btn.classList.add('vp__select--active');\n        } else {\n          btn.classList.remove('vp__select--active');\n        }\n      });\n    }\n\n    selectButtons.forEach(function(btn) {\n      btn.addEventListener('click', function() {\n        var q = parseInt(btn.getAttribute('data-qty'), 10);\n        if (!q) return;\n\n        qtyInput.value = q;\n        qtyInput.dispatchEvent(new Event('input', { bubbles: true }));\n        qtyInput.dispatchEvent(new Event('change', { bubbles: true }));\n\n        updateUI();\n      });\n    });\n\n    qtyInput.addEventListener('change', updateUI);\n    qtyInput.addEventListener('input', updateUI);\n\n    var qtyButtons = document.querySelectorAll(\n      'button[name=\"plus\"], button[name=\"minus\"], .quantity__button'\n    );\n    qtyButtons.forEach(function(btn) {\n      btn.addEventListener('click', function() {\n        setTimeout(updateUI, 0);\n      });\n    });\n\n    updateUI();\n  });\n<\/script>\n\n\n{% endif %}"}},"variant_picker":{"type":"variant_picker","settings":{"picker_type":"button","swatch_shape":"circle"}},"quantity_selector":{"type":"quantity_selector","settings":{}},"buy_buttons":{"type":"buy_buttons","settings":{"show_dynamic_checkout":true,"show_gift_card_recipient":true}},"description":{"type":"description","settings":{}},"share":{"type":"share","settings":{"share_label":"Share"}}},"block_order":["vendor","title","price","custom_liquid_7WKpRx","variant_picker","quantity_selector","buy_buttons","description","share"],"settings":{"enable_sticky_info":true,"color_scheme":"scheme-1","media_size":"large","constrain_to_viewport":true,"media_fit":"contain","gallery_layout":"stacked","mobile_thumbnails":"hide","media_position":"left","image_zoom":"lightbox","hide_variants":true,"enable_video_looping":false,"padding_top":36,"padding_bottom":12}},"related-products":{"type":"related-products","settings":{"heading":"You may also like","heading_size":"h2","products_to_show":4,"columns_desktop":4,"columns_mobile":"2","color_scheme":"scheme-1","image_ratio":"square","image_shape":"default","show_secondary_image":true,"show_vendor":false,"show_rating":false,"padding_top":36,"padding_bottom":28}}},"order":["main","related-products"]}
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "blocks": {
+        "vendor": {
+          "type": "text",
+          "settings": {
+            "text": "{{ product.vendor }}",
+            "text_style": "uppercase"
+          }
+        },
+        "title": {
+          "type": "title",
+          "settings": {}
+        },
+        "price": {
+          "type": "price",
+          "settings": {}
+        },
+        "custom_liquid_7WKpRx": {
+          "type": "custom_liquid",
+          "settings": {
+            "custom_liquid": "{% liquid\n  assign show_staffel = true\n\n  if product == nil\n    assign show_staffel = false\n  endif\n\n  assign staffel_metafield = product.metafields.custom.staffelpreise\n\n  if staffel_metafield == blank\n    assign show_staffel = false\n  else\n    assign tiers = staffel_metafield.value | sort: 'mindestmenge'\n    if tiers.size == 0\n      assign show_staffel = false\n    endif\n  endif\n\n  assign base_price = product.selected_or_first_available_variant.price\n  assign container_id = 'volume-pricing-' | append: product.id\n%}\n\n{% if show_staffel %}\n  <div id=\"{{ container_id }}\" class=\"volume-pricing\">\n    <strong>Mengenrabatte</strong>\n\n    <table class=\"volume-pricing__table\">\n      <thead>\n        <tr>\n          <th class=\"vp__col-select\"></th>\n          <th class=\"vp__col-qty\">Menge</th>\n          <th class=\"vp__col-discount\">Rabatt / Stk.</th>\n        </tr>\n      </thead>\n      <tbody>\n        {% for tier in tiers %}\n          {% assign qty = tier.mindestmenge.value %}\n          {% assign discount_value = tier.rabatt_in_euro.value %}\n          <tr>\n            <td class=\"vp__col-select\">\n              <button\n                type=\"button\"\n                class=\"vp__select\"\n                data-qty=\"{{ qty }}\"\n                aria-label=\"Menge auf {{ qty }} Stück setzen\"\n              ></button>\n            </td>\n            <td class=\"vp__col-qty\">ab {{ qty }} Stück</td>\n            <td class=\"vp__col-discount\">-{{ discount_value | money }} pro Stück</td>\n          </tr>\n        {% endfor %}\n      </tbody>\n    </table>\n\n    <p class=\"volume-pricing__hint\" data-volume-message></p>\n  </div>\n\n  <style>\n    .volume-pricing {\n      border: 1px solid #e5e5e5;\n      padding: 1rem;\n      margin-top: 1rem;\n      border-radius: 0.5rem;\n      font-size: 0.9rem;\n    }\n    .volume-pricing__table {\n      width: 100%;\n      margin-top: 0.5rem;\n      border-collapse: collapse;\n    }\n    .volume-pricing__table th,\n    .volume-pricing__table td {\n      padding: 0.25rem 0;\n      text-align: left; /* alles links */\n    }\n    .vp__col-select {\n      width: 2rem;\n      text-align: left;\n    }\n    .vp__select {\n      position: relative;\n      width: 1.4rem;\n      height: 1.4rem;\n      border-radius: 999px;\n      border: 1px solid #333;\n      background: #fff;\n      cursor: pointer;\n      padding: 0;\n      display: inline-block;\n      vertical-align: middle;\n    }\n    .vp__select::after {\n      content: \"\";\n      position: absolute;\n      inset: 3px;\n      border-radius: 999px;\n      background: #333;\n      opacity: 0; /* leerer Kreis */\n      transition: opacity 0.15s ease-out;\n    }\n    .vp__select--active::after {\n      opacity: 1; /* nur aktiver Button mit Punkt */\n    }\n    .vp__select:focus-visible {\n      outline: 2px solid #000;\n      outline-offset: 2px;\n    }\n    .volume-pricing__hint {\n      margin-top: 1rem;\n      font-size: 0.8rem;\n      opacity: 0.85;\n    }\n  </style>\n\n<script>\n  document.addEventListener('DOMContentLoaded', function() {\n    var container = document.getElementById({{ container_id | json }});\n    if (!container) return;\n\n    var messageEl = container.querySelector('[data-volume-message]');\n    var qtyInput = document.querySelector('input[name=\"quantity\"]');\n    if (!qtyInput) return;\n\n    var priceEl =\n      document.querySelector('[data-product-price]') ||\n      document.querySelector('.price-item--regular') ||\n      document.querySelector('.product__price') ||\n      document.querySelector('.price');\n\n    var originalPriceHTML = priceEl ? priceEl.innerHTML : null;\n\n    var baseUnitPrice = {{ base_price | json }};\n\n    var tiers = [\n      {% for tier in tiers %}\n        {\n          qty: {{ tier.mindestmenge.value | json }},\n          discountCents: {{ tier.rabatt_in_euro.value | json }},\n          discountLabel: {{ tier.rabatt_in_euro.value | money | json }}\n        }{% unless forloop.last %},{% endunless %}\n      {% endfor %}\n    ];\n\n    var selectButtons = container.querySelectorAll('.vp__select');\n\n    function formatMoney(cents) {\n      var value = cents / 100;\n      return value.toLocaleString('de-DE', {\n        style: 'currency',\n        currency: '{{ shop.currency }}'\n      });\n    }\n\n    function getBestTier(qty) {\n      var best = null;\n      for (var i = 0; i < tiers.length; i++) {\n        if (qty >= tiers[i].qty) {\n          best = tiers[i];\n        } else {\n          break;\n        }\n      }\n      return best;\n    }\n\n    function updateUI() {\n      var qty = parseInt(qtyInput.value, 10) || 1;\n\n      var bestTier = getBestTier(qty);\n\n      if (messageEl && tiers.length) {\n        var firstTier = tiers[0];\n\n        if (qty < firstTier.qty) {\n          var missingFirst = firstTier.qty - qty;\n          messageEl.textContent =\n            'Noch ' + missingFirst + ' Stück bis zum ersten Mengenrabatt: dann ' +\n            firstTier.discountLabel + ' Rabatt pro Stück.';\n        } else {\n          var nextTier = null;\n          for (var i = 0; i < tiers.length; i++) {\n            if (qty < tiers[i].qty) {\n              nextTier = tiers[i];\n              break;\n            }\n          }\n\n          if (nextTier) {\n            var missing = nextTier.qty - qty;\n            messageEl.textContent =\n              'Noch ' + missing + ' Stück bis ' + nextTier.qty +\n              '+: dann ' + nextTier.discountLabel + ' Rabatt pro Stück.';\n          } else {\n            var maxTier = tiers[tiers.length - 1];\n            messageEl.textContent =\n              'Du erhältst bereits den maximalen Mengenrabatt von ' +\n              maxTier.discountLabel + ' pro Stück.';\n          }\n        }\n      }\n\n      if (priceEl && originalPriceHTML !== null) {\n        if (!bestTier) {\n          priceEl.innerHTML = originalPriceHTML;\n        } else {\n          var discountedUnitPrice = baseUnitPrice - bestTier.discountCents;\n          if (discountedUnitPrice > 0) {\n            var baseFormatted = formatMoney(baseUnitPrice);\n            var discountedFormatted = formatMoney(discountedUnitPrice);\n            priceEl.innerHTML =\n              '<s>' + baseFormatted + '</s> ' + discountedFormatted;\n          } else {\n            priceEl.innerHTML = originalPriceHTML;\n          }\n        }\n      }\n\n      var activeQty = bestTier ? bestTier.qty : null;\n      selectButtons.forEach(function(btn) {\n        var btnQty = parseInt(btn.getAttribute('data-qty'), 10);\n        if (activeQty && btnQty === activeQty) {\n          btn.classList.add('vp__select--active');\n        } else {\n          btn.classList.remove('vp__select--active');\n        }\n      });\n    }\n\n    selectButtons.forEach(function(btn) {\n      btn.addEventListener('click', function() {\n        var q = parseInt(btn.getAttribute('data-qty'), 10);\n        if (!q) return;\n\n        qtyInput.value = q;\n        qtyInput.dispatchEvent(new Event('input', { bubbles: true }));\n        qtyInput.dispatchEvent(new Event('change', { bubbles: true }));\n\n        updateUI();\n      });\n    });\n\n    qtyInput.addEventListener('change', updateUI);\n    qtyInput.addEventListener('input', updateUI);\n\n    var qtyButtons = document.querySelectorAll(\n      'button[name=\"plus\"], button[name=\"minus\"], .quantity__button'\n    );\n    qtyButtons.forEach(function(btn) {\n      btn.addEventListener('click', function() {\n        setTimeout(updateUI, 0);\n      });\n    });\n\n    updateUI();\n  });\n</script>\n\n\n{% endif %}"
+          }
+        },
+        "variant_picker": {
+          "type": "variant_picker",
+          "settings": {
+            "picker_type": "button",
+            "swatch_shape": "circle"
+          }
+        },
+        "quantity_selector": {
+          "type": "quantity_selector",
+          "settings": {}
+        },
+        "buy_buttons": {
+          "type": "buy_buttons",
+          "settings": {
+            "show_dynamic_checkout": true,
+            "show_gift_card_recipient": true
+          }
+        },
+        "description": {
+          "type": "description",
+          "settings": {}
+        },
+        "share": {
+          "type": "share",
+          "settings": {
+            "share_label": "Share"
+          }
+        }
+      },
+      "block_order": [
+        "vendor",
+        "title",
+        "price",
+        "custom_liquid_7WKpRx",
+        "variant_picker",
+        "quantity_selector",
+        "buy_buttons",
+        "description",
+        "share"
+      ],
+      "settings": {
+        "enable_sticky_info": true,
+        "color_scheme": "scheme-1",
+        "media_size": "large",
+        "constrain_to_viewport": true,
+        "media_fit": "contain",
+        "gallery_layout": "stacked",
+        "mobile_thumbnails": "hide",
+        "media_position": "left",
+        "image_zoom": "lightbox",
+        "hide_variants": true,
+        "enable_video_looping": false,
+        "show_b2b_price_debug": true,
+        "padding_top": 36,
+        "padding_bottom": 12
+      }
+    },
+    "related-products": {
+      "type": "related-products",
+      "settings": {
+        "heading": "You may also like",
+        "heading_size": "h2",
+        "products_to_show": 4,
+        "columns_desktop": 4,
+        "columns_mobile": "2",
+        "color_scheme": "scheme-1",
+        "image_ratio": "square",
+        "image_shape": "default",
+        "show_secondary_image": true,
+        "show_vendor": false,
+        "show_rating": false,
+        "padding_top": 36,
+        "padding_bottom": 28
+      }
+    }
+  },
+  "order": [
+    "main",
+    "related-products"
+  ]
+}
