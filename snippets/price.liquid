@@ -11,8 +11,28 @@
 
   Usage:
   {% render 'price', product: product %}
+
+  B2B-Netto: customer.b2b? oder current_company; DE: Markt DE oder default_address DE.
 {% endcomment %}
 {%- liquid
+  assign is_b2b_customer = false
+  assign is_german_customer = false
+  assign customer_tags_downcase = customer.tags | join: ',' | downcase
+
+  if customer
+    if customer.b2b? or customer.current_company
+      assign is_b2b_customer = true
+    elsif customer_tags_downcase contains 'b2b' or customer_tags_downcase contains 'unternehmenskonto'
+      assign is_b2b_customer = true
+    endif
+  endif
+
+  if localization.country.iso_code == 'DE'
+    assign is_german_customer = true
+  elsif customer and customer.default_address and customer.default_address.country_code == 'DE'
+    assign is_german_customer = true
+  endif
+
   if use_variant
     assign target = product.selected_or_first_available_variant
   elsif placeholder
@@ -29,6 +49,17 @@
   assign money_price = price | money
   assign money_price_min = price_min | money
   assign money_price_max = price_max | money
+
+  if is_b2b_customer and is_german_customer
+    assign price = price | times: 100.0 | divided_by: 119.0 | round
+    assign price_min = price_min | times: 100.0 | divided_by: 119.0 | round
+    assign price_max = price_max | times: 100.0 | divided_by: 119.0 | round
+    assign compare_at_price = compare_at_price | times: 100.0 | divided_by: 119.0 | round
+    assign money_price = price | money
+    assign money_price_min = price_min | money
+    assign money_price_max = price_max | money
+  endif
+
   if settings.currency_code_enabled
     assign money_price = price | money_with_currency
     assign money_price_min = price_min | money_with_currency
