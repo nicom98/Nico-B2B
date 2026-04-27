@@ -35,21 +35,12 @@
   elsif line_item != blank and line_item.product
     assign vat_source_product = line_item.product
   endif
-  if vat_source_product
-    for coll in vat_source_product.collections
-      assign ch = coll.handle | downcase
-      if ch == '7-mwst' or ch contains '7-mwst' or ch contains '7prozent' or ch contains '7-prozent' or ch contains '7-proz'
-        assign b2b_vat_baseline = 107.0
-        break
-      endif
-      assign ct = coll.title | downcase
-      if ct contains '7%' and ct contains 'mwst'
-        assign b2b_vat_baseline = 107.0
-        break
-      endif
-    endfor
-  endif
-
+-%}
+{%- if vat_source_product -%}
+  {%- capture b2b_baseline_str -%}{% render 'b2b-vat-baseline', product: vat_source_product %}{%- endcapture -%}
+  {%- assign b2b_vat_baseline = b2b_baseline_str | strip | plus: 0 | times: 1.0 -%}
+{%- endif -%}
+{%- liquid
   if is_b2b and is_de
     assign amount = amount | times: 100.0 | divided_by: b2b_vat_baseline | round
   endif

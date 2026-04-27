@@ -1,0 +1,55 @@
+{%- comment -%}
+  Vorschau-Gesamtbetrag im Warenkorb: für DE-B2B die Summe der zeilenweisen
+  Netto-Beträge (7 % bzw. 19 % je Produkt), statt `cart.total_price` pauschal ÷ 1,19.
+  Nicht-DE-B2B: Brutto wie Shopify.
+  Zusatzbetrag oberhalb der Zeilensumme (z. B. vorausabgerechnete Versandkosten) wird vorsichtig mit 19 % (÷ 1,19) umgerechnet.
+
+  @param {boolean} [with_currency] - money_with_currency
+{%- endcomment -%}
+{%- liquid
+  assign is_b2b = false
+  assign is_de = false
+  if customer
+    if customer.b2b? or customer.current_company
+      assign is_b2b = true
+    else
+      assign tag_str = customer.tags | join: ',' | downcase
+      if tag_str contains 'b2b' or tag_str contains 'unternehmenskonto'
+        assign is_b2b = true
+      endif
+    endif
+  endif
+  if localization.country.iso_code == 'DE'
+    assign is_de = true
+  elsif customer and customer.default_address and customer.default_address.country_code == 'DE'
+    assign is_de = true
+  endif
+-%}
+{%- unless is_b2b and is_de -%}
+  {%- if with_currency -%}
+    {{- cart.total_price | money_with_currency -}}
+  {%- else -%}
+    {{- cart.total_price | money -}}
+  {%- endif -%}
+{%- else -%}
+  {%- assign sum_gross = 0 -%}
+  {%- assign sum_net = 0 -%}
+  {%- for item in cart.items -%}
+    {%- assign lg = item.final_line_price -%}
+    {%- assign sum_gross = sum_gross | plus: lg -%}
+    {%- capture base_raw -%}{% render 'b2b-vat-baseline', product: item.product %}{%- endcapture -%}
+    {%- assign baseline = base_raw | strip | plus: 0 | times: 1.0 -%}
+    {%- assign part = lg | times: 100.0 | divided_by: baseline | round -%}
+    {%- assign sum_net = sum_net | plus: part -%}
+  {%- endfor -%}
+  {%- assign remainder = cart.total_price | minus: sum_gross -%}
+  {%- if remainder > 0 -%}
+    {%- assign rnet = remainder | times: 100.0 | divided_by: 119.0 | round -%}
+    {%- assign sum_net = sum_net | plus: rnet -%}
+  {%- endif -%}
+  {%- if with_currency -%}
+    {{- sum_net | money_with_currency -}}
+  {%- else -%}
+    {{- sum_net | money -}}
+  {%- endif -%}
+{%- endunless -%}

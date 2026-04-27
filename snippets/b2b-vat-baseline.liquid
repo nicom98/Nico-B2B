@@ -1,0 +1,23 @@
+{%- comment -%}
+  MwSt.-Divisor in Hundertstel (Brutto → Netto: Cent × 100 ÷ dieser Wert).
+  107 = 7 % MwSt., 119 = 19 % Mwst.
+  Muss inhaltlich mit money-b2b / Warenkorb-Summe übereinstimmen.
+
+  @param {object} [product] - Wenn leer, wird 119 ausgegeben.
+{%- endcomment -%}
+{%- assign b2b_vat_baseline = 119 -%}
+{%- if product != blank -%}
+  {%- for coll in product.collections -%}
+    {%- assign ch = coll.handle | downcase -%}
+    {%- if ch == '7-mwst' or ch contains '7-mwst' or ch contains '7prozent' or ch contains '7-prozent' or ch contains '7-proz' -%}
+      {%- assign b2b_vat_baseline = 107 -%}
+      {%- break -%}
+    {%- endif -%}
+    {%- assign ct = coll.title | downcase -%}
+    {%- if ct contains '7%' and ct contains 'mwst' -%}
+      {%- assign b2b_vat_baseline = 107 -%}
+      {%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+{{- b2b_vat_baseline -}}
