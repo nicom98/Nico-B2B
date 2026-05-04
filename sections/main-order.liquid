@@ -22,7 +22,25 @@
 
   <div>
     <div>
-      <h2>{{ 'customer.order.title' | t: name: order.name }}</h2>
+      {%- liquid
+        assign order_has_biozid = false
+        for line_item in order.line_items
+          if line_item.product
+            assign bio_tag_check = line_item.product.tags | join: ',' | downcase
+            if bio_tag_check contains 'biozid'
+              assign order_has_biozid = true
+              break
+            endif
+          endif
+        endfor
+      -%}
+      <h2>
+        {%- if order_has_biozid -%}
+          Bestellanfrage erhalten
+        {%- else -%}
+          {{- 'customer.order.title' | t: name: order.name -}}
+        {%- endif -%}
+      </h2>
       {%- assign order_date = order.created_at | time_tag: format: 'date_at_time' -%}
       <p>{{ 'customer.order.date_html' | t: date: order_date }}</p>
       {%- if order.cancelled -%}
@@ -33,7 +51,11 @@
 
       <table role="table" class="order-details">
         <caption class="visually-hidden">
-          {{ 'customer.order.title' | t: name: order.name }}
+          {%- if order_has_biozid -%}
+            Bestellanfrage erhalten {{ order.name }}
+          {%- else -%}
+            {{- 'customer.order.title' | t: name: order.name -}}
+          {%- endif -%}
         </caption>
         <thead role="rowgroup">
           <tr role="row">
