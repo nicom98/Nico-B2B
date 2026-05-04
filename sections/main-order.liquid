@@ -51,11 +51,7 @@
 
       <table role="table" class="order-details">
         <caption class="visually-hidden">
-          {%- if order_has_biozid -%}
-            Bestellanfrage erhalten {{ order.name }}
-          {%- else -%}
-            {{- 'customer.order.title' | t: name: order.name -}}
-          {%- endif -%}
+          {{ 'customer.order.title' | t: name: order.name }}
         </caption>
         <thead role="rowgroup">
           <tr role="row">
