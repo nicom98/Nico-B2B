@@ -44,6 +44,44 @@
           "type": "quantity_selector",
           "settings": {}
         },
+        "mnml_product_volume_pricing_volume_pricing_widget_qwJHhe": {
+          "type": "shopify://apps/mnml-product-volume-pricing/blocks/volume_pricing_widget/0199cd91-ceb8-745f-8c22-0f23f648e653",
+          "settings": {
+            "display_only": false,
+            "hide_default_quantity": false,
+            "hide_single_item_tier": false,
+            "auto_select_first_tier": true,
+            "hide_tiers_above_stock": false,
+            "customer_tag_mode": "show",
+            "customer_tags": "",
+            "layout_mode": "grid",
+            "tier_alignment": "left",
+            "tier_height": 16,
+            "tier_border_radius": 12,
+            "tier_font_size": 14,
+            "badge_font_size": 12,
+            "border_color": "#e5e7eb",
+            "border_color_hover": "#374151",
+            "border_color_selected": "#059669",
+            "background_color": "#ffffff",
+            "background_color_selected": "#f0fdf4",
+            "text_color": "#111827",
+            "text_color_secondary": "#6b7280",
+            "sale_price_color": "#111827",
+            "savings_color": "#dc3545",
+            "savings_background": "rgba(220, 53, 69, 0.1)",
+            "badge_background": "#22c55e",
+            "badge_text_color": "#ffffff",
+            "show_tier_qty": true,
+            "tier_qty_label": "Buy [quantity]+",
+            "savings_label": "[percentage]% off",
+            "savings_style": "tag",
+            "price_display_type": "per_item",
+            "show_original_price": true,
+            "show_unit_price": false,
+            "hide_currency_symbol": false
+          }
+        },
         "buy_buttons": {
           "type": "buy_buttons",
           "settings": {
@@ -69,6 +107,7 @@
         "custom_liquid_7WKpRx",
         "variant_picker",
         "quantity_selector",
+        "mnml_product_volume_pricing_volume_pricing_widget_qwJHhe",
         "buy_buttons",
         "description",
         "share"
