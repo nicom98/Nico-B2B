@@ -69,7 +69,7 @@
             "text_color_secondary": "#6b7280",
             "sale_price_color": "#111827",
             "savings_color": "#dc3545",
-            "savings_background": "rgba(220, 53, 69, 0.1)",
+            "savings_background": "#dc35451a",
             "badge_background": "#22c55e",
             "badge_text_color": "#ffffff",
             "show_tier_qty": true,
@@ -98,6 +98,19 @@
           "settings": {
             "share_label": "Share"
           }
+        },
+        "complementary_hpfkM3": {
+          "type": "complementary",
+          "settings": {
+            "block_heading": "Passt gut zu",
+            "make_collapsible_row": false,
+            "icon": "price_tag",
+            "product_list_limit": 10,
+            "products_per_page": 3,
+            "pagination_style": "counter",
+            "image_ratio": "square",
+            "enable_quick_add": false
+          }
         }
       },
       "block_order": [
@@ -110,7 +123,8 @@
         "mnml_product_volume_pricing_volume_pricing_widget_qwJHhe",
         "buy_buttons",
         "description",
-        "share"
+        "share",
+        "complementary_hpfkM3"
       ],
       "settings": {
         "enable_sticky_info": true,
